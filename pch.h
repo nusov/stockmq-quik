@@ -17,7 +17,6 @@
 #include <msgpack.hpp>
 
 // ZeroMQ
-#define ZMQ_STATIC
 #include <zmq.hpp>
 
 // Lua
