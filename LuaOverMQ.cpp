@@ -261,6 +261,6 @@ extern "C" LUALIB_API int luaopen_LuaOverMQ(lua_State * L) {
 	luaL_setfuncs(L, funcs, 0);
 	lua_pushvalue(L, -1);
 	lua_setfield(L, -1, "__index");
-	lua_setglobal(L, "LuaOverMQ");
+	lua_setglobal(L, LUAOVERMQ);
 	return 1;
 }
