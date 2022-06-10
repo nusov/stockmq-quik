@@ -12,6 +12,7 @@
 
 // STL
 #include <string>
+#include <chrono>
 
 // MsgPack
 #include <msgpack.hpp>

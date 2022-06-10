@@ -164,6 +164,7 @@ static int luaovermq_bind(lua_State* L) {
 	return 1;
 }
 
+
 static int luaovermq_process(lua_State* L) {
 	LuaOverMQ* s = luaovermq_check(L, 1);
 	zmq::socket_t* zmq_skt = s->zmq_skt;
@@ -192,7 +193,7 @@ static int luaovermq_process(lua_State* L) {
 					int top_prev = lua_gettop(L);
 					if (lua_pcall(L, handle.get().via.array.size - 1, LUA_MULTRET, 0) != 0) {
 						status = RUNTIME_ERROR;
-						pk.pack(lua_tostring(L, -1));
+						stack_pack(pk, L, -1);
 						lua_pop(L, -1);
 					}
 					else {
@@ -233,6 +234,12 @@ static int luaovermq_errno(lua_State* L) {
 	return 1;
 }
 
+static int luaovermq_time(lua_State* L) {
+	auto ts = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	lua_pushnumber(L, static_cast<lua_Number>(ts / 1000000.0));
+	return 1;
+}
+
 static int luaovermq_destructor(lua_State* L) {
 	LuaOverMQ* s = luaovermq_check(L, 1);
 	if (s->zmq_skt) {
@@ -251,6 +258,7 @@ static luaL_Reg funcs[] = {
 	{ "bind", luaovermq_bind },
 	{ "process", luaovermq_process },
 	{ "errno", luaovermq_errno },
+	{ "time", luaovermq_time },
 	{ "__gc", luaovermq_destructor },
 	{ NULL, NULL }
 };
