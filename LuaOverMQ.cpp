@@ -145,9 +145,13 @@ struct LuaOverMQ {
 	int zmq_err;
 };
 
-
 inline LuaOverMQ* luaovermq_check(lua_State* L, int n) {
 	return *(LuaOverMQ**)luaL_checkudata(L, n, METATABLE);
+}
+
+inline void send_multipart(zmq::socket_t* zmq_skt, const std::string& header, const msgpack::sbuffer& buffer) {
+	zmq_skt->send(zmq::message_t(header.data(), header.size()), zmq::send_flags::sndmore);
+	zmq_skt->send(zmq::message_t(buffer.data(), buffer.size()), zmq::send_flags::none);
 }
 
 static int luaovermq_bind(lua_State* L) {
@@ -164,16 +168,30 @@ static int luaovermq_bind(lua_State* L) {
 	return 1;
 }
 
+static int luaovermq_router(lua_State* L) {
+	std::string bind_address = luaL_checkstring(L, 1);
+	LuaOverMQ** udata = (LuaOverMQ**)lua_newuserdata(L, sizeof(LuaOverMQ*));
+	*udata = new LuaOverMQ();
+
+	(*udata)->zmq_ctx = new zmq::context_t(1);
+	(*udata)->zmq_skt = new zmq::socket_t(*(*udata)->zmq_ctx, ZMQ_ROUTER);
+	(*udata)->zmq_skt->set(zmq::sockopt::router_handover, true);
+	(*udata)->zmq_skt->bind(bind_address);
+
+	luaL_getmetatable(L, METATABLE);
+	lua_setmetatable(L, -2);
+	return 1;
+}
 
 static int luaovermq_process(lua_State* L) {
 	LuaOverMQ* s = luaovermq_check(L, 1);
-	zmq::socket_t* zmq_skt = s->zmq_skt;
 
-	if (zmq_skt) {
+	if (s->zmq_skt) {
+		s->zmq_err = 0;
 		try {
 			zmq::message_t msg;
 
-			if (zmq_skt->recv(msg, zmq::recv_flags::none)) {
+			if (s->zmq_skt->recv(msg, zmq::recv_flags::none)) {
 				auto handle = msgpack::unpack(static_cast<const char*>(msg.data()), msg.size());
 				std::string status = OK;
 
@@ -205,7 +223,6 @@ static int luaovermq_process(lua_State* L) {
 							stack_pack(pk, L, lua_gettop(L) - i + 1);
 						}
 
-						// cleanup stack
 						for (int i = 0; i < results; i++) {
 							lua_pop(L, 1);
 						}
@@ -216,17 +233,39 @@ static int luaovermq_process(lua_State* L) {
 					lua_pop(L, -1);
 					pk.pack(funcname);
 				}
-				zmq_skt->send(zmq::message_t(status.data(), status.size()), zmq::send_flags::sndmore);
-				zmq_skt->send(zmq::message_t(buffer.data(), buffer.size()), zmq::send_flags::none);
+				send_multipart(s->zmq_skt, status, buffer);
 			}
 		}
 		catch (zmq::error_t ex) {
 			s->zmq_err = ex.num();
 		}
 	}
+	lua_pushinteger(L, static_cast<lua_Integer>(s->zmq_err));
 	return 1;
 }
 
+static int luaovermq_send(lua_State* L) {
+	LuaOverMQ* s = luaovermq_check(L, 1);
+	std::string identity = luaL_checkstring(L, 2);
+	luaL_checkany(L, 3);
+
+	if (s->zmq_skt) {
+		s->zmq_err = 0;
+		try {
+			msgpack::sbuffer buffer;
+			msgpack::packer<msgpack::sbuffer> pk(buffer);
+
+			stack_pack(pk, L, 3);
+			send_multipart(s->zmq_skt, identity, buffer);
+		}
+		catch (zmq::error_t ex) {
+			s->zmq_err = ex.num();
+		}
+	}
+
+	lua_pushinteger(L, static_cast<lua_Integer>(s->zmq_err));
+	return 1;
+}
 
 static int luaovermq_errno(lua_State* L) {
 	LuaOverMQ* s = luaovermq_check(L, 1);
@@ -256,6 +295,8 @@ static int luaovermq_destructor(lua_State* L) {
 
 static luaL_Reg funcs[] = {
 	{ "bind", luaovermq_bind },
+	{ "router", luaovermq_router },
+	{ "send", luaovermq_send },
 	{ "process", luaovermq_process },
 	{ "errno", luaovermq_errno },
 	{ "time", luaovermq_time },
