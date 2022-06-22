@@ -12,11 +12,15 @@ function main()
     rpc = LuaOverMQ.bind("tcp://0.0.0.0:8004", STOCKMQ_ZMQ_REP)
     pub = LuaOverMQ.bind("tcp://0.0.0.0:8005", STOCKMQ_ZMQ_PUB)
 
-    pub:send("hello", "world")
+    -- Publish a message
+    if pub:send("topic", "Hello World!") ~= 0 then
+        print("LuaOverMQ Error: "..tostring(rpc:errno()))
+    end
 
+    -- RPC Server loop
     while isRunning do
         if rpc:process() ~= 0 then
-            print("StockMQ Error: "..tostring(rpc:errno()))
+            print("LuaOverMQ Error: "..tostring(rpc:errno()))
         end
     end
 end
