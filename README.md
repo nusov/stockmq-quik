@@ -15,7 +15,9 @@ function main()
     pub:send("hello", "world")
 
     while isRunning do
-        rpc:process()
+        if rpc:process() ~= 0 then
+            print("StockMQ Error: "..tostring(rpc:errno()))
+        end
     end
 end
 ```
