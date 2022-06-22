@@ -155,25 +155,12 @@ inline void send_multipart(zmq::socket_t* zmq_skt, const std::string& header, co
 
 static int luaovermq_bind(lua_State* L) {
 	std::string bind_address = luaL_checkstring(L, 1);
+	int skt_type = static_cast<int>(luaL_checkinteger(L, 2));
 	LuaOverMQ** udata = (LuaOverMQ**)lua_newuserdata(L, sizeof(LuaOverMQ*));
 	*udata = new LuaOverMQ();
 
 	(*udata)->zmq_ctx = new zmq::context_t(1);
-	(*udata)->zmq_skt = new zmq::socket_t(*(*udata)->zmq_ctx, ZMQ_REP);
-	(*udata)->zmq_skt->bind(bind_address);
-
-	luaL_getmetatable(L, METATABLE);
-	lua_setmetatable(L, -2);
-	return 1;
-}
-
-static int luaovermq_pub(lua_State* L) {
-	std::string bind_address = luaL_checkstring(L, 1);
-	LuaOverMQ** udata = (LuaOverMQ**)lua_newuserdata(L, sizeof(LuaOverMQ*));
-	*udata = new LuaOverMQ();
-
-	(*udata)->zmq_ctx = new zmq::context_t(1);
-	(*udata)->zmq_skt = new zmq::socket_t(*(*udata)->zmq_ctx, ZMQ_PUB);
+	(*udata)->zmq_skt = new zmq::socket_t(*(*udata)->zmq_ctx, skt_type);
 	(*udata)->zmq_skt->bind(bind_address);
 
 	luaL_getmetatable(L, METATABLE);
@@ -302,7 +289,6 @@ static int luaovermq_destructor(lua_State* L) {
 
 static luaL_Reg funcs[] = {
 	{ "bind", luaovermq_bind },
-	{ "pub" , luaovermq_pub },
 	{ "send", luaovermq_send },
 	{ "process", luaovermq_process },
 	{ "errno", luaovermq_errno },
