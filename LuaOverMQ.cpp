@@ -215,10 +215,19 @@ static int luaovermq_process(lua_State* L) {
 					else {
 						int results = lua_gettop(L) - level;
 
-						pk.pack_array(results);
-
-						for (int i = results; i > 0; i--) {
-							stack_pack(pk, L, lua_gettop(L) - i + 1);
+						switch (results) {
+						case 0:
+							pk.pack_nil();
+							break;
+						case 1:
+							stack_pack(pk, L, lua_gettop(L));
+							break;
+						default:
+							pk.pack_array(results);
+							for (int i = results; i > 0; i--) {
+								stack_pack(pk, L, lua_gettop(L) - i + 1);
+							}
+							break;
 						}
 
 						for (int i = 0; i < results; i++) {
@@ -228,8 +237,8 @@ static int luaovermq_process(lua_State* L) {
 				}
 				else {
 					status = STATUS_ERROR;
+					pk.pack(std::format("{}:{}: function '{}' not found", __FILE__, __LINE__, funcname));
 					lua_pop(L, -1);
-					pk.pack(funcname);
 				}
 				send_multipart(s->zmq_skt, status, buffer);
 			}
