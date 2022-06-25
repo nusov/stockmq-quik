@@ -24,28 +24,28 @@ constexpr auto STATUS_OK = "OK";
 
 // String Utils
 std::string wide_to_ansi(const std::wstring& wstr) {
-	int count = WideCharToMultiByte(CODE_PAGE, 0, wstr.c_str(), static_cast<int>(wstr.length()), NULL, 0, NULL, NULL);
+	auto count = WideCharToMultiByte(CODE_PAGE, 0, wstr.c_str(), static_cast<int>(wstr.length()), NULL, 0, NULL, NULL);
 	std::string str(count, 0);
 	WideCharToMultiByte(CODE_PAGE, 0, wstr.c_str(), -1, &str[0], count, NULL, NULL);
 	return str;
 }
 
 std::string wide_to_utf8(const std::wstring& wstr) {
-	int count = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), static_cast<int>(wstr.length()), NULL, 0, NULL, NULL);
+	auto count = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), static_cast<int>(wstr.length()), NULL, 0, NULL, NULL);
 	std::string str(count, 0);
 	WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, &str[0], static_cast<int>(count), NULL, NULL);
 	return str;
 }
 
 std::wstring ansi_to_wide(const std::string& str) {
-	int count = MultiByteToWideChar(CODE_PAGE, 0, str.c_str(), static_cast<int>(str.length()), NULL, 0);
+	auto count = MultiByteToWideChar(CODE_PAGE, 0, str.c_str(), static_cast<int>(str.length()), NULL, 0);
 	std::wstring wstr(count, 0);
 	MultiByteToWideChar(CODE_PAGE, 0, str.c_str(), static_cast<int>(str.length()), &wstr[0], count);
 	return wstr;
 }
 
 std::wstring utf8_to_wide(const std::string& str) {
-	int count = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.length()), NULL, 0);
+	auto count = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.length()), NULL, 0);
 	std::wstring wstr(count, 0);
 	MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.length()), &wstr[0], count);
 	return wstr;
@@ -54,7 +54,7 @@ std::wstring utf8_to_wide(const std::string& str) {
 // Stack Utils
 int stack_table_count(lua_State* L, int t) {
 	lua_pushnil(L);
-	int count = 0;
+	auto count = 0;
 	while (lua_next(L, t) != 0) {
 		lua_pop(L, 1);
 		count++;
@@ -87,7 +87,7 @@ void stack_push(lua_State* L, msgpack::object& obj) {
 		break;
 	case msgpack::type::ARRAY:
 		lua_newtable(L);
-		for (uint32_t i = 0; i < obj.via.array.size; i++) {
+		for (auto i = 0u; i < obj.via.array.size; i++) {
 			lua_pushinteger(L, static_cast<lua_Integer>(i) + 1);
 			stack_push(L, obj.via.array.ptr[i]);
 			lua_settable(L, -3);
@@ -95,7 +95,7 @@ void stack_push(lua_State* L, msgpack::object& obj) {
 		break;
 	case msgpack::type::MAP:
 		lua_newtable(L);
-		for (uint32_t i = 0; i < obj.via.map.size; i++) {
+		for (auto i = 0u; i < obj.via.map.size; i++) {
 			stack_push(L, obj.via.map.ptr[i].key);
 			stack_push(L, obj.via.map.ptr[i].val);
 			lua_settable(L, -3);
@@ -154,9 +154,9 @@ inline void send_multipart(zmq::socket_t* zmq_skt, const std::string& header, co
 }
 
 static int luaovermq_bind(lua_State* L) {
-	std::string bind_address = luaL_checkstring(L, 1);
-	int skt_type = static_cast<int>(luaL_checkinteger(L, 2));
-	LuaOverMQ** udata = (LuaOverMQ**)lua_newuserdata(L, sizeof(LuaOverMQ*));
+	auto bind_address = luaL_checkstring(L, 1);
+	auto skt_type = static_cast<int>(luaL_checkinteger(L, 2));
+	auto udata = (LuaOverMQ**)lua_newuserdata(L, sizeof(LuaOverMQ*));
 	*udata = new LuaOverMQ();
 
 	(*udata)->zmq_ctx = new zmq::context_t(1);
@@ -169,7 +169,7 @@ static int luaovermq_bind(lua_State* L) {
 }
 
 static int luaovermq_process(lua_State* L) {
-	LuaOverMQ* s = luaovermq_check(L, 1);
+	auto s = luaovermq_check(L, 1);
 
 	if (s->zmq_skt) {
 		s->zmq_err = 0;
@@ -178,7 +178,7 @@ static int luaovermq_process(lua_State* L) {
 
 			if (s->zmq_skt->recv(msg, zmq::recv_flags::none)) {
 				auto handle = msgpack::unpack(static_cast<const char*>(msg.data()), msg.size());
-				std::string status = STATUS_OK;
+				auto status = STATUS_OK;
 
 				msgpack::sbuffer buffer;
 				msgpack::packer<msgpack::sbuffer> pk(buffer);
@@ -186,21 +186,21 @@ static int luaovermq_process(lua_State* L) {
 				std::string funcname;
 				handle.get().via.array.ptr[0].convert(funcname);
 
-				int level = lua_gettop(L);
+				auto level = lua_gettop(L);
 				lua_getglobal(L, funcname.c_str());
 				if (!lua_isnil(L, -1)) {
-					for (uint32_t i = 1; i < handle.get().via.array.size; i++) {
+					for (auto i = 1u; i < handle.get().via.array.size; i++) {
 						stack_push(L, handle.get().via.array.ptr[i]);
 					}
 
-					int top_prev = lua_gettop(L);
+					auto top_prev = lua_gettop(L);
 					if (lua_pcall(L, handle.get().via.array.size - 1, LUA_MULTRET, 0) != 0) {
 						status = STATUS_ERROR;
 						stack_pack(pk, L, -1);
 						lua_pop(L, -1);
 					}
 					else {
-						int results = lua_gettop(L) - level;
+						auto results = lua_gettop(L) - level;
 
 						switch (results) {
 						case 0:
@@ -211,13 +211,13 @@ static int luaovermq_process(lua_State* L) {
 							break;
 						default:
 							pk.pack_array(results);
-							for (int i = results; i > 0; i--) {
+							for (auto i = results; i > 0; i--) {
 								stack_pack(pk, L, lua_gettop(L) - i + 1);
 							}
 							break;
 						}
 
-						for (int i = 0; i < results; i++) {
+						for (auto i = 0; i < results; i++) {
 							lua_pop(L, 1);
 						}
 					}
@@ -239,8 +239,8 @@ static int luaovermq_process(lua_State* L) {
 }
 
 static int luaovermq_send(lua_State* L) {
-	LuaOverMQ* s = luaovermq_check(L, 1);
-	std::string identity = luaL_checkstring(L, 2);
+	auto s = luaovermq_check(L, 1);
+	auto identity = luaL_checkstring(L, 2);
 	luaL_checkany(L, 3);
 
 	if (s->zmq_skt) {
@@ -262,7 +262,7 @@ static int luaovermq_send(lua_State* L) {
 }
 
 static int luaovermq_errno(lua_State* L) {
-	LuaOverMQ* s = luaovermq_check(L, 1);
+	auto s = luaovermq_check(L, 1);
 	lua_pushinteger(L, static_cast<lua_Integer>(s->zmq_err));
 	return 1;
 }
@@ -274,7 +274,7 @@ static int luaovermq_time(lua_State* L) {
 }
 
 static int luaovermq_destructor(lua_State* L) {
-	LuaOverMQ* s = luaovermq_check(L, 1);
+	auto s = luaovermq_check(L, 1);
 	if (s->zmq_skt) {
 		s->zmq_skt->close();
 		delete s->zmq_skt;
