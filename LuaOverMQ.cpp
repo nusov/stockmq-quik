@@ -74,16 +74,16 @@ void stack_push(lua_State* L, msgpack::object& obj) {
 		lua_pushnil(L);
 		break;
 	case msgpack::type::POSITIVE_INTEGER:
-		lua_pushinteger(L, (lua_Integer)obj.via.u64);
+		lua_pushinteger(L, static_cast<lua_Integer>(obj.via.i64));
 		break;
 	case msgpack::type::NEGATIVE_INTEGER:
-		lua_pushinteger(L, (lua_Integer)obj.via.i64);
+		lua_pushinteger(L, static_cast<lua_Integer>(obj.via.i64));
 		break;
 	case msgpack::type::FLOAT32:
-		lua_pushnumber(L, (lua_Number)obj.via.f64);
+		lua_pushnumber(L, static_cast<lua_Number>(obj.via.f64));
 		break;
 	case msgpack::type::FLOAT64:
-		lua_pushnumber(L, (lua_Number)obj.via.f64);
+		lua_pushnumber(L, static_cast<lua_Number>(obj.via.f64));
 		break;
 	case msgpack::type::ARRAY:
 		lua_newtable(L);
