@@ -174,17 +174,16 @@ static int luaovermq_process(lua_State* L) {
 	if (s->zmq_skt) {
 		s->zmq_err = 0;
 		try {
-			zmq::message_t msg;
+			auto msg = zmq::message_t();
 
 			if (s->zmq_skt->recv(msg, zmq::recv_flags::none)) {
 				auto handle = msgpack::unpack(static_cast<const char*>(msg.data()), msg.size());
 				auto status = STATUS_OK;
 
-				msgpack::sbuffer buffer;
-				msgpack::packer<msgpack::sbuffer> pk(buffer);
+				auto buffer = msgpack::sbuffer();
+				auto packer = msgpack::packer<msgpack::sbuffer>(buffer);
 
-				std::string funcname;
-				handle.get().via.array.ptr[0].convert(funcname);
+				auto funcname = handle.get().via.array.ptr[0].as<std::string>();
 
 				auto level = lua_gettop(L);
 				lua_getglobal(L, funcname.c_str());
@@ -196,7 +195,7 @@ static int luaovermq_process(lua_State* L) {
 					auto top_prev = lua_gettop(L);
 					if (lua_pcall(L, handle.get().via.array.size - 1, LUA_MULTRET, 0) != 0) {
 						status = STATUS_ERROR;
-						stack_pack(pk, L, -1);
+						stack_pack(packer, L, -1);
 						lua_pop(L, -1);
 					}
 					else {
@@ -204,15 +203,15 @@ static int luaovermq_process(lua_State* L) {
 
 						switch (results) {
 						case 0:
-							pk.pack_nil();
+							packer.pack_nil();
 							break;
 						case 1:
-							stack_pack(pk, L, lua_gettop(L));
+							stack_pack(packer, L, lua_gettop(L));
 							break;
 						default:
-							pk.pack_array(results);
+							packer.pack_array(results);
 							for (auto i = results; i > 0; i--) {
-								stack_pack(pk, L, lua_gettop(L) - i + 1);
+								stack_pack(packer, L, lua_gettop(L) - i + 1);
 							}
 							break;
 						}
@@ -224,7 +223,7 @@ static int luaovermq_process(lua_State* L) {
 				}
 				else {
 					status = STATUS_ERROR;
-					pk.pack(std::format("{}:{}: function '{}' not found", __FILE__, __LINE__, funcname));
+					packer.pack(std::format("{}:{}: function '{}' not found", __FILE__, __LINE__, funcname));
 					lua_pop(L, -1);
 				}
 				send_multipart(s->zmq_skt, status, buffer);
@@ -246,10 +245,10 @@ static int luaovermq_send(lua_State* L) {
 	if (s->zmq_skt) {
 		s->zmq_err = 0;
 		try {
-			msgpack::sbuffer buffer;
-			msgpack::packer<msgpack::sbuffer> pk(buffer);
+			auto buffer = msgpack::sbuffer();
+			auto packer = msgpack::packer<msgpack::sbuffer>(buffer);
 
-			stack_pack(pk, L, 3);
+			stack_pack(packer, L, 3);
 			send_multipart(s->zmq_skt, identity, buffer);
 		}
 		catch (zmq::error_t ex) {
