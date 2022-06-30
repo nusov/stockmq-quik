@@ -202,12 +202,7 @@ static int luaovermq_process(lua_State* L) {
 						}
 
 						auto top_prev = lua_gettop(L);
-						if (lua_pcall(L, handle.get().via.array.size - 1, LUA_MULTRET, 0) != 0) {
-							status = STATUS_ERROR;
-							stack_pack(packer, L, -1);
-							lua_pop(L, -1);
-						}
-						else {
+						if (!lua_pcall(L, handle.get().via.array.size - 1, LUA_MULTRET, 0)) {
 							auto results = lua_gettop(L) - level;
 
 							switch (results) {
@@ -228,6 +223,11 @@ static int luaovermq_process(lua_State* L) {
 							for (auto i = 0; i < results; i++) {
 								lua_pop(L, 1);
 							}
+						}
+						else {
+							status = STATUS_ERROR;
+							stack_pack(packer, L, -1);
+							lua_pop(L, -1);
 						}
 					}
 					else {
