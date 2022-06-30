@@ -51,6 +51,14 @@ std::wstring utf8_to_wide(const std::string& str) {
 	return wstr;
 }
 
+std::string utf8_to_ansi(const std::string& str) {
+	return wide_to_ansi(utf8_to_wide(str));
+}
+
+std::string ansi_to_utf8(const std::string& str) {
+	return wide_to_utf8(ansi_to_wide(str));
+}
+
 // Stack Utils
 int stack_table_count(lua_State* L, int t) {
 	lua_pushnil(L);
@@ -65,7 +73,7 @@ int stack_table_count(lua_State* L, int t) {
 void stack_push(lua_State* L, msgpack::object& obj) {
 	switch (obj.type) {
 	case msgpack::type::STR:
-		lua_pushstring(L, wide_to_ansi(utf8_to_wide(obj.as<std::string>())).c_str());
+		lua_pushstring(L, utf8_to_ansi(obj.as<std::string>()).c_str());
 		break;
 	case msgpack::type::BOOLEAN:
 		lua_pushboolean(L, obj.via.boolean);
@@ -120,7 +128,7 @@ void stack_pack(msgpack::packer<msgpack::sbuffer>& pk, lua_State* L, int i) {
 		}
 		break;
 	case LUA_TSTRING:
-		pk.pack(wide_to_utf8(ansi_to_wide(lua_tostring(L, i))));
+		pk.pack(ansi_to_utf8(lua_tostring(L, i)));
 		break;
 	case LUA_TTABLE:
 		pk.pack_map(stack_table_count(L, i));
