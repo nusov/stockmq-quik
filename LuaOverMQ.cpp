@@ -190,13 +190,9 @@ static int luaovermq_process(lua_State* L) {
 				auto buffer = msgpack::sbuffer();
 				auto packer = msgpack::packer<msgpack::sbuffer>(buffer);
 
-				if ((handle.get().type != msgpack::type::ARRAY) ||
-					(handle.get().via.array.size == 0) ||
-					(handle.get().via.array.ptr[0].type != msgpack::type::STR)) {
-					status = STATUS_ERROR;
-					packer.pack(std::format("{}:{}: input should be array with first argument as string", __FILE__, __LINE__));
-				}
-				else {
+				if (handle.get().type == msgpack::type::ARRAY && 
+					handle.get().via.array.size > 0 && 
+					handle.get().via.array.ptr[0].type == msgpack::type::STR) {
 					auto funcname = handle.get().via.array.ptr[0].as<std::string>();
 					auto level = lua_gettop(L);
 					lua_getglobal(L, funcname.c_str());
@@ -239,6 +235,10 @@ static int luaovermq_process(lua_State* L) {
 						packer.pack(std::format("{}:{}: function '{}' not found", __FILE__, __LINE__, funcname));
 						lua_pop(L, -1);
 					}
+				}
+				else {
+					status = STATUS_ERROR;
+					packer.pack(std::format("{}:{}: input should be array with first argument as string", __FILE__, __LINE__));
 				}
 				send_multipart(s->zmq_skt, status, buffer);
 			}
