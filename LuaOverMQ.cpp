@@ -16,7 +16,6 @@
  */
 #include "pch.h"
 
-constexpr auto CODE_PAGE = 1251;
 constexpr auto METATABLE = "luaL_LuaOverMQ";
 constexpr auto LUAOVERMQ = "LuaOverMQ";
 constexpr auto STATUS_ERROR = "ERROR";
@@ -24,9 +23,9 @@ constexpr auto STATUS_OK = "OK";
 
 // String Utils
 std::string wide_to_ansi(const std::wstring& wstr) {
-	auto count = WideCharToMultiByte(CODE_PAGE, 0, wstr.c_str(), static_cast<int>(wstr.length()), NULL, 0, NULL, NULL);
+	auto count = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), static_cast<int>(wstr.length()), NULL, 0, NULL, NULL);
 	auto str = std::string(count, 0);
-	WideCharToMultiByte(CODE_PAGE, 0, wstr.c_str(), -1, &str[0], count, NULL, NULL);
+	WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, &str[0], count, NULL, NULL);
 	return str;
 }
 
@@ -38,9 +37,9 @@ std::string wide_to_utf8(const std::wstring& wstr) {
 }
 
 std::wstring ansi_to_wide(const std::string& str) {
-	auto count = MultiByteToWideChar(CODE_PAGE, 0, str.c_str(), static_cast<int>(str.length()), NULL, 0);
+	auto count = MultiByteToWideChar(CP_ACP, 0, str.c_str(), static_cast<int>(str.length()), NULL, 0);
 	auto wstr = std::wstring(count, 0);
-	MultiByteToWideChar(CODE_PAGE, 0, str.c_str(), static_cast<int>(str.length()), &wstr[0], count);
+	MultiByteToWideChar(CP_ACP, 0, str.c_str(), static_cast<int>(str.length()), &wstr[0], count);
 	return wstr;
 }
 
