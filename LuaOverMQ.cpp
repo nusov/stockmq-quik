@@ -183,48 +183,55 @@ static int luaovermq_process(lua_State* L) {
 				auto buffer = msgpack::sbuffer();
 				auto packer = msgpack::packer<msgpack::sbuffer>(buffer);
 
-				auto funcname = handle.get().via.array.ptr[0].as<std::string>();
-
-				auto level = lua_gettop(L);
-				lua_getglobal(L, funcname.c_str());
-				if (!lua_isnil(L, -1)) {
-					for (auto i = 1u; i < handle.get().via.array.size; i++) {
-						stack_push(L, handle.get().via.array.ptr[i]);
-					}
-
-					auto top_prev = lua_gettop(L);
-					if (lua_pcall(L, handle.get().via.array.size - 1, LUA_MULTRET, 0) != 0) {
-						status = STATUS_ERROR;
-						stack_pack(packer, L, -1);
-						lua_pop(L, -1);
-					}
-					else {
-						auto results = lua_gettop(L) - level;
-
-						switch (results) {
-						case 0:
-							packer.pack_nil();
-							break;
-						case 1:
-							stack_pack(packer, L, lua_gettop(L));
-							break;
-						default:
-							packer.pack_array(results);
-							for (auto i = results; i > 0; i--) {
-								stack_pack(packer, L, lua_gettop(L) - i + 1);
-							}
-							break;
-						}
-
-						for (auto i = 0; i < results; i++) {
-							lua_pop(L, 1);
-						}
-					}
+				if ((handle.get().type != msgpack::type::ARRAY) ||
+					(handle.get().via.array.size == 0) ||
+					(handle.get().via.array.ptr[0].type != msgpack::type::STR)) {
+					status = STATUS_ERROR;
+					packer.pack(std::format("{}:{}: input should be array with first argument as string", __FILE__, __LINE__));
 				}
 				else {
-					status = STATUS_ERROR;
-					packer.pack(std::format("{}:{}: function '{}' not found", __FILE__, __LINE__, funcname));
-					lua_pop(L, -1);
+					auto funcname = handle.get().via.array.ptr[0].as<std::string>();
+					auto level = lua_gettop(L);
+					lua_getglobal(L, funcname.c_str());
+					if (!lua_isnil(L, -1)) {
+						for (auto i = 1u; i < handle.get().via.array.size; i++) {
+							stack_push(L, handle.get().via.array.ptr[i]);
+						}
+
+						auto top_prev = lua_gettop(L);
+						if (lua_pcall(L, handle.get().via.array.size - 1, LUA_MULTRET, 0) != 0) {
+							status = STATUS_ERROR;
+							stack_pack(packer, L, -1);
+							lua_pop(L, -1);
+						}
+						else {
+							auto results = lua_gettop(L) - level;
+
+							switch (results) {
+							case 0:
+								packer.pack_nil();
+								break;
+							case 1:
+								stack_pack(packer, L, lua_gettop(L));
+								break;
+							default:
+								packer.pack_array(results);
+								for (auto i = results; i > 0; i--) {
+									stack_pack(packer, L, lua_gettop(L) - i + 1);
+								}
+								break;
+							}
+
+							for (auto i = 0; i < results; i++) {
+								lua_pop(L, 1);
+							}
+						}
+					}
+					else {
+						status = STATUS_ERROR;
+						packer.pack(std::format("{}:{}: function '{}' not found", __FILE__, __LINE__, funcname));
+						lua_pop(L, -1);
+					}
 				}
 				send_multipart(s->zmq_skt, status, buffer);
 			}
