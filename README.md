@@ -2,6 +2,8 @@
 
 LuaOverMQ is high-performance RPC library that uses MsgPack and ZeroMQ.
 
+On AMD Ryzen 5600x it allows to run 10000 RPS in average.
+
 ```
 require("LuaOverMQ")
 
