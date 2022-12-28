@@ -1,5 +1,5 @@
 /*
- * This file is part of the LuaOverMQ distribution (https://github.com/StockMQ/LuaOverMQ).
+ * This file is part of the LuaOverMQ distribution (https://github.com/StockMQ).
  * Copyright (c) 2022 Alexander Nusov
  *
  * This program is free software: you can redistribute it and/or modify

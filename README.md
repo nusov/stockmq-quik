@@ -1,8 +1,11 @@
 # LuaOverMQ
 
-LuaOverMQ is high-performance RPC library that uses MsgPack and ZeroMQ.
+LuaOverMQ is a high-performance RPC library that uses MsgPack and ZeroMQ.
 
-On AMD Ryzen 5600x it allows to run 10000 RPS in average.
+This project is a part of [StockMQ](https://github.com/StockMQ) distribution to communicate with trading terminals
+but can be used with any software which allows to load external DLLs.
+
+On AMD Ryzen 5600x it performs 10000 RPS in average.
 
 ```
 require("LuaOverMQ")
@@ -100,6 +103,13 @@ Before you begin building the application, you must have the following prerequis
 ```
 vcpkg.exe install msgpack cppzmq --triplet=x64-windows-static
 vcpkg.exe integrate install
+```
+
+# Check out the project
+
+```
+git clone https://github.com/LuaOverMQ
+cd LuaOverMQ
 ```
 
 # Build Lua 5.4.1 (Preferred)
