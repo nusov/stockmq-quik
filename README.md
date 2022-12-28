@@ -41,7 +41,7 @@ function main()
 end
 ```
 
-# Protocol
+# Protocol implementation
 
 RPC uses Req-Rep pattern. Here is an example of the Python connector.
 
