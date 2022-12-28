@@ -8,13 +8,25 @@ but can be used with any software which allows to load external DLLs.
 On AMD Ryzen 5600x it performs 10000 RPS in average.
 
 ```
+-- Configure LUA_PATH
+package.path = package.path .. ';'
+    .. getScriptPath() .. "\\src\\?.lua"
+
+-- Configure LUA_CPATH
+package.cpath = package.cpath .. ';' 
+    .. getScriptPath() .. "\\x64\\Release\\?.dll"
+
+-- Load C++ extension
 require("LuaOverMQ")
 
-local STOCKMQ_ZMQ_REP = 4
-local STOCKMQ_ZMQ_PUB = 1
+-- Global constants
+STOCKMQ_ZMQ_REP = 4
+STOCKMQ_ZMQ_PUB = 1
 
+-- Local variables
 local isRunning = true
 
+-- Main function which creates two sockets (req-rep (RPC) and pub-sub)
 function main()
     rpc = LuaOverMQ.bind("tcp://0.0.0.0:8004", STOCKMQ_ZMQ_REP)
     pub = LuaOverMQ.bind("tcp://0.0.0.0:8005", STOCKMQ_ZMQ_PUB)
