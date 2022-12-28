@@ -88,7 +88,9 @@ if __name__ == "__main__":
         print(rpc.call("your_function", "arg1", 2, True))
 ```
 
-# Before you begin building the application, you must have the following prerequisites installed on your system
+# Prerequisites
+
+Before you begin building the application, you must have the following prerequisites installed on your system
 
 * [Visual Studio 2022 (C++ Desktop Development)](https://visualstudio.microsoft.com/downloads/)
 * [vcpkg](https://vcpkg.io/en/getting-started.html)
