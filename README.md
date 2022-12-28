@@ -8,10 +8,6 @@ but can be used with any software which allows to load external DLLs.
 On AMD Ryzen 5600x it performs 10000 RPS in average.
 
 ```
--- Configure LUA_PATH
-package.path = package.path .. ';'
-    .. getScriptPath() .. "\\src\\?.lua"
-
 -- Configure LUA_CPATH
 package.cpath = package.cpath .. ';' 
     .. getScriptPath() .. "\\x64\\Release\\?.dll"
