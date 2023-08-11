@@ -1,4 +1,4 @@
-module github.com/nusov/LuaOverMQ/SDK/go
+module github.com/nusov/stockmq-quik/SDK/go
 
 go 1.18
 
